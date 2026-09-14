@@ -31,7 +31,7 @@ export function LockScreen() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-6 text-foreground">
-      <p className="font-display text-4xl font-medium tracking-tight">Salus</p>
+      <p className="font-display text-4xl font-medium tracking-tight">Domicura</p>
       <p className="mt-3 max-w-xs text-center text-muted-foreground">
         Inserisci il PIN per aprire il diario della famiglia.
       </p>

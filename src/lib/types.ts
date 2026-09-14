@@ -140,12 +140,13 @@ export type Appointment = {
   status: "upcoming" | "done" | "cancelled";
 };
 
-export type DocCategory =
-  | "blood"
-  | "imaging"
-  | "prescription"
-  | "specialist"
-  | "other";
+export type DocCategory = string;
+
+export type DocFile = {
+  name: string;
+  dataUrl: string;
+  kind: "image" | "pdf" | "other";
+};
 
 export type ClinicalDocument = {
   id: string;
@@ -156,15 +157,13 @@ export type ClinicalDocument = {
   facility?: string;
   doctor?: string;
   notes?: string;
-  fileName?: string;
-  fileData?: string;
+  files: DocFile[];
 };
 
-export type AppData = {
-  hasOnboarded: boolean;
-  pinHash: string | null;
-  highContrast: boolean;
-  largeType: boolean;
+export type DataMode = "demo" | "personal";
+
+/** The part of the app data that differs between "demo" and "personal" mode. */
+export type DataSlice = {
   activeProfileId: string | null;
   profiles: Profile[];
   medications: Medication[];
@@ -174,6 +173,28 @@ export type AppData = {
   symptoms: Symptom[];
   appointments: Appointment[];
   documents: ClinicalDocument[];
+};
+
+export const EMPTY_DATA_SLICE: DataSlice = {
+  activeProfileId: null,
+  profiles: [],
+  medications: [],
+  doseLogs: [],
+  vitals: [],
+  thresholds: {},
+  symptoms: [],
+  appointments: [],
+  documents: [],
+};
+
+export type AppData = DataSlice & {
+  hasOnboarded: boolean;
+  pinHash: string | null;
+  highContrast: boolean;
+  largeType: boolean;
+  mode: DataMode;
+  dataCache: Partial<Record<DataMode, DataSlice>>;
+  documentCategories: string[];
 };
 
 export const DEFAULT_THRESHOLDS: Thresholds = {
@@ -223,13 +244,13 @@ export const VITAL_META: Record<
   spo2: { label: "Saturazione", unit: "%", short: "SpO₂" },
 };
 
-export const DOC_LABEL: Record<DocCategory, string> = {
-  blood: "Analisi del sangue",
-  imaging: "Radiografie / RX",
-  prescription: "Prescrizioni / Ricette",
-  specialist: "Referti specialistici",
-  other: "Altro",
-};
+export const DEFAULT_DOCUMENT_CATEGORIES = [
+  "Analisi del sangue",
+  "Radiografie / RX",
+  "Prescrizioni / Ricette",
+  "Referti specialistici",
+  "Altro",
+];
 
 export const SKIP_REASONS = [
   "Dimenticato",

@@ -4,6 +4,8 @@ import type {
   AppData,
   Appointment,
   ClinicalDocument,
+  DataMode,
+  DataSlice,
   DoseLog,
   Medication,
   Profile,
@@ -11,7 +13,7 @@ import type {
   Thresholds,
   Vital,
 } from "./types";
-import { DEFAULT_THRESHOLDS } from "./types";
+import { DEFAULT_THRESHOLDS, DEFAULT_DOCUMENT_CATEGORIES, EMPTY_DATA_SLICE } from "./types";
 import { createSeed } from "./seed";
 import { uid } from "./utils";
 import { postponeDue } from "./schedule";
@@ -30,6 +32,7 @@ type Actions = {
   setPinHash: (hash: string | null) => void;
   setHighContrast: (v: boolean) => void;
   setLargeType: (v: boolean) => void;
+  setMode: (mode: DataMode) => void;
   setActiveProfile: (id: string | null) => void;
   addProfile: (p: Omit<Profile, "id">) => string;
   updateProfile: (id: string, patch: Partial<Profile>) => void;
@@ -49,24 +52,42 @@ type Actions = {
   updateAppointment: (id: string, patch: Partial<Appointment>) => void;
   removeAppointment: (id: string) => void;
   addDocument: (d: Omit<ClinicalDocument, "id">) => string;
+  updateDocument: (id: string, patch: Partial<ClinicalDocument>) => void;
   removeDocument: (id: string) => void;
+  addDocumentCategory: (name: string) => void;
   resetDemo: () => void;
+  exportBackup: () => string;
+  importBackup: (json: string) => { ok: true } | { ok: false; error: string };
 };
 
-const empty: AppData = {
+type GlobalSettings = {
+  hasOnboarded: boolean;
+  pinHash: string | null;
+  highContrast: boolean;
+  largeType: boolean;
+  documentCategories: string[];
+};
+
+function sliceFrom(s: AppData): DataSlice {
+  return {
+    activeProfileId: s.activeProfileId,
+    profiles: s.profiles,
+    medications: s.medications,
+    doseLogs: s.doseLogs,
+    vitals: s.vitals,
+    thresholds: s.thresholds,
+    symptoms: s.symptoms,
+    appointments: s.appointments,
+    documents: s.documents,
+  };
+}
+
+const emptyGlobal: GlobalSettings = {
   hasOnboarded: false,
   pinHash: null,
   highContrast: false,
   largeType: false,
-  activeProfileId: null,
-  profiles: [],
-  medications: [],
-  doseLogs: [],
-  vitals: [],
-  thresholds: {},
-  symptoms: [],
-  appointments: [],
-  documents: [],
+  documentCategories: [...DEFAULT_DOCUMENT_CATEGORIES],
 };
 
 function upsertLog(logs: DoseLog[], next: DoseLog): DoseLog[] {
@@ -82,13 +103,23 @@ function upsertLog(logs: DoseLog[], next: DoseLog): DoseLog[] {
 export const useAppStore = create<AppData & Session & Actions>()(
   persist(
     (set, get) => ({
-      ...empty,
+      ...emptyGlobal,
+      ...EMPTY_DATA_SLICE,
+      mode: "demo",
+      dataCache: {},
       unlocked: true,
       hydrated: false,
       hydrateDone: () => {
         const s = get();
         if (!s.hasOnboarded || s.profiles.length === 0) {
-          set({ ...createSeed(), hydrated: true, unlocked: !s.pinHash });
+          set({
+            ...createSeed(),
+            hasOnboarded: true,
+            mode: "demo",
+            dataCache: {},
+            hydrated: true,
+            unlocked: !s.pinHash,
+          });
           return;
         }
         set({ hydrated: true, unlocked: !s.pinHash });
@@ -101,6 +132,14 @@ export const useAppStore = create<AppData & Session & Actions>()(
       setPinHash: (hash) => set({ pinHash: hash, unlocked: hash ? true : true }),
       setHighContrast: (v) => set({ highContrast: v }),
       setLargeType: (v) => set({ largeType: v }),
+      setMode: (mode) =>
+        set((s) => {
+          if (mode === s.mode) return {};
+          const current = sliceFrom(s);
+          const dataCache = { ...s.dataCache, [s.mode]: current };
+          const target = dataCache[mode] ?? (mode === "demo" ? createSeed() : { ...EMPTY_DATA_SLICE });
+          return { ...target, mode, dataCache };
+        }),
       setActiveProfile: (id) => set({ activeProfileId: id }),
       addProfile: (p) => {
         const id = uid("p");
@@ -189,7 +228,7 @@ export const useAppStore = create<AppData & Session & Actions>()(
         })),
       addVital: (v) => {
         const id = uid("v");
-        set((s) => ({ vitals: [ { ...v, id }, ...s.vitals ] }));
+        set((s) => ({ vitals: [{ ...v, id }, ...s.vitals] }));
         return id;
       },
       removeVital: (id) => set((s) => ({ vitals: s.vitals.filter((v) => v.id !== id) })),
@@ -217,18 +256,87 @@ export const useAppStore = create<AppData & Session & Actions>()(
         set((s) => ({ documents: [{ ...d, id }, ...s.documents] }));
         return id;
       },
+      updateDocument: (id, patch) =>
+        set((s) => ({
+          documents: s.documents.map((d) => (d.id === id ? { ...d, ...patch } : d)),
+        })),
       removeDocument: (id) =>
         set((s) => ({ documents: s.documents.filter((d) => d.id !== id) })),
-      resetDemo: () => set({ ...createSeed(), unlocked: true, hydrated: true }),
+      addDocumentCategory: (name) =>
+        set((s) => {
+          const clean = name.trim();
+          if (!clean) return {};
+          const exists = s.documentCategories.some(
+            (c) => c.toLowerCase() === clean.toLowerCase(),
+          );
+          if (exists) return {};
+          return { documentCategories: [...s.documentCategories, clean] };
+        }),
+      resetDemo: () =>
+        set((s) => {
+          const seed = createSeed();
+          const dataCache = { ...s.dataCache, demo: seed };
+          if (s.mode === "demo") {
+            return { ...seed, dataCache, unlocked: true, hydrated: true };
+          }
+          return { dataCache };
+        }),
+      exportBackup: () => {
+        const s = get();
+        const payload = {
+          app: "domicura-backup",
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          hasOnboarded: s.hasOnboarded,
+          pinHash: s.pinHash,
+          highContrast: s.highContrast,
+          largeType: s.largeType,
+          documentCategories: s.documentCategories,
+          mode: s.mode,
+          dataCache: { ...s.dataCache, [s.mode]: sliceFrom(s) },
+        };
+        return JSON.stringify(payload, null, 2);
+      },
+      importBackup: (json) => {
+        try {
+          const parsed = JSON.parse(json);
+          if (!parsed || typeof parsed !== "object" || !parsed.dataCache) {
+            return { ok: false, error: "Il file non sembra un backup valido." };
+          }
+          const mode: DataMode = parsed.mode === "personal" ? "personal" : "demo";
+          const active = parsed.dataCache[mode] ?? EMPTY_DATA_SLICE;
+          set({
+            hasOnboarded: true,
+            pinHash: parsed.pinHash ?? null,
+            highContrast: Boolean(parsed.highContrast),
+            largeType: Boolean(parsed.largeType),
+            documentCategories:
+              Array.isArray(parsed.documentCategories) && parsed.documentCategories.length
+                ? parsed.documentCategories
+                : [...DEFAULT_DOCUMENT_CATEGORIES],
+            mode,
+            dataCache: parsed.dataCache,
+            ...active,
+            unlocked: !parsed.pinHash,
+            hydrated: true,
+          });
+          return { ok: true };
+        } catch {
+          return { ok: false, error: "Impossibile leggere il file: formato non valido." };
+        }
+      },
     }),
     {
-      name: "salus-family-health",
+      name: "domicura-family-health",
       skipHydration: true,
       partialize: (s) => ({
         hasOnboarded: s.hasOnboarded,
         pinHash: s.pinHash,
         highContrast: s.highContrast,
         largeType: s.largeType,
+        documentCategories: s.documentCategories,
+        mode: s.mode,
+        dataCache: s.dataCache,
         activeProfileId: s.activeProfileId,
         profiles: s.profiles,
         medications: s.medications,
@@ -244,7 +352,7 @@ export const useAppStore = create<AppData & Session & Actions>()(
 );
 
 export async function hashPin(pin: string): Promise<string> {
-  const data = new TextEncoder().encode(`salus-v1:${pin}`);
+  const data = new TextEncoder().encode(`domicura-v1:${pin}`);
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))

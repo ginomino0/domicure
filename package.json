@@ -1,5 +1,5 @@
 {
-  "name": "salus-diario-salute-familiare",
+  "name": "domicura-diario-salute-familiare",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,6 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.0.0",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.510.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

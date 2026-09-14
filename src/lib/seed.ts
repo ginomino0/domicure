@@ -1,5 +1,5 @@
 import { addDays, subDays, subHours } from "date-fns";
-import type { AppData, ClinicalDocument, DoseLog, Medication, Profile, Symptom, Vital } from "./types";
+import type { ClinicalDocument, DataSlice, DoseLog, Medication, Profile, Symptom, Vital } from "./types";
 import { DEFAULT_THRESHOLDS } from "./types";
 import { toLocalDate, toLocalStamp, applyTime } from "./format";
 
@@ -47,7 +47,7 @@ function weightSeries(profileId: string, now: Date, days: number, base: number):
   return out;
 }
 
-export function createSeed(now = new Date()): AppData {
+export function createSeed(now = new Date()): DataSlice {
   const today = now;
   const profiles: Profile[] = [
     {
@@ -424,7 +424,8 @@ export function createSeed(now = new Date()): AppData {
       id: "d1",
       profileId: "p-teresa",
       title: "Esami ematochimici",
-      category: "blood",
+      category: "Analisi del sangue",
+      files: [],
       date: toLocalDate(subDays(today, 18)),
       facility: "Lab. San Luca",
       doctor: "Dr. Ferraro",
@@ -434,7 +435,8 @@ export function createSeed(now = new Date()): AppData {
       id: "d2",
       profileId: "p-teresa",
       title: "ECG a riposo",
-      category: "imaging",
+      category: "Radiografie / RX",
+      files: [],
       date: toLocalDate(subDays(today, 40)),
       facility: "Cardiologia Ospedale Civile",
       doctor: "Dr.ssa Greco",
@@ -443,7 +445,8 @@ export function createSeed(now = new Date()): AppData {
       id: "d3",
       profileId: "p-marco",
       title: "Ricetta Amlodipina 5 mg",
-      category: "prescription",
+      category: "Prescrizioni / Ricette",
+      files: [],
       date: toLocalDate(subDays(today, 6)),
       facility: "MMG Dr. Conti",
       doctor: "Dr. Conti",
@@ -452,7 +455,8 @@ export function createSeed(now = new Date()): AppData {
       id: "d4",
       profileId: "p-chiara",
       title: "TSH / FT4",
-      category: "blood",
+      category: "Analisi del sangue",
+      files: [],
       date: toLocalDate(subDays(today, 50)),
       facility: "Lab. San Luca",
       doctor: "Dr.ssa Marini",
@@ -462,7 +466,8 @@ export function createSeed(now = new Date()): AppData {
       id: "d5",
       profileId: "p-teresa",
       title: "Visita cardiologica",
-      category: "specialist",
+      category: "Referti specialistici",
+      files: [],
       date: toLocalDate(subDays(today, 40)),
       facility: "Cardiologia Ospedale Civile",
       doctor: "Dr.ssa Greco",
@@ -470,10 +475,6 @@ export function createSeed(now = new Date()): AppData {
   ];
 
   return {
-    hasOnboarded: true,
-    pinHash: null,
-    highContrast: false,
-    largeType: false,
     activeProfileId: "p-teresa",
     profiles,
     medications,

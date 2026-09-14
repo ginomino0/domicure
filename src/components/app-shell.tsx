@@ -22,6 +22,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const unlocked = useAppStore((s) => s.unlocked);
   const pinHash = useAppStore((s) => s.pinHash);
+  const mode = useAppStore((s) => s.mode);
+  const setMode = useAppStore((s) => s.setMode);
 
   return (
     <ClientGate>
@@ -31,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="min-h-dvh bg-background text-foreground">
           <aside className="fixed top-0 left-0 z-30 hidden h-dvh w-60 flex-col border-r border-border bg-card px-4 py-6 md:flex">
             <Link to="/" className="px-2">
-              <span className="font-display text-3xl font-medium tracking-tight">Salus</span>
+              <span className="font-display text-3xl font-medium tracking-tight">Domicura</span>
               <span className="mt-1 block text-sm text-muted-foreground">Diario familiare</span>
             </Link>
             <nav className="mt-10 flex flex-col gap-1">
@@ -61,7 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm md:hidden">
             <Link to="/" className="font-display text-2xl font-medium tracking-tight">
-              Salus
+              Domicura
             </Link>
             <span className="text-sm text-muted-foreground">
               {NAV.find((n) => navActive(pathname, n.to))?.label ?? "Diario"}
@@ -69,6 +71,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           </header>
 
           <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 md:ml-60 md:px-8 md:pb-12 md:pt-8">
+            {mode === "demo" && (
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/15 px-4 py-3 text-sm">
+                <span>
+                  Stai visualizzando <strong>dati di esempio</strong> per capire come funziona
+                  il diario.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setMode("personal")}
+                  className="shrink-0 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground"
+                >
+                  Passa ai miei dati personali
+                </button>
+              </div>
+            )}
             {children}
           </main>
 

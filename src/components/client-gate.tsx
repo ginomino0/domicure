@@ -29,7 +29,7 @@ export function ClientGate({ children }: { children: ReactNode }) {
   if (!mounted || !hydrated) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-background text-foreground">
-        <p className="font-display text-4xl font-medium tracking-tight">Salus</p>
+        <p className="font-display text-4xl font-medium tracking-tight">Domicura</p>
         <p className="mt-2 text-muted-foreground">Diario della salute familiare</p>
       </div>
     );

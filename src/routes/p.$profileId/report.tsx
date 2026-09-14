@@ -83,7 +83,7 @@ function ReportPage() {
 
       <article className="rounded-xl bg-card p-6 shadow-card print:shadow-none">
         <header className="border-b border-border pb-4">
-          <p className="font-display text-3xl font-medium">Salus</p>
+          <p className="font-display text-3xl font-medium">Domicura</p>
           <p className="text-sm text-muted-foreground">Diario della salute familiare</p>
           <h3 className="mt-4 font-display text-2xl">{profile.name}</h3>
           <p className="text-sm text-muted-foreground">
