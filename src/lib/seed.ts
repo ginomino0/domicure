@@ -502,6 +502,7 @@ export function createSeed(now = new Date()): DataSlice {
         ],
         questions: ["Consegnare ricetta del MMG", "Chiedere copia per il cardiologo"],
         status: "upcoming",
+        files: [],
       },
       {
         id: "a2",
@@ -522,6 +523,7 @@ export function createSeed(now = new Date()): DataSlice {
         ],
         notes: "Portare ultimi esami e diario PA",
         status: "upcoming",
+        files: [],
       },
       {
         id: "a3",
@@ -534,6 +536,7 @@ export function createSeed(now = new Date()): DataSlice {
         reminders: [{ hoursBefore: 24, label: "Promemoria visita" }],
         questions: ["Confermare dosaggio Eutirox 75", "Ultimo TSH"],
         status: "upcoming",
+        files: [],
       },
       {
         id: "a4",
@@ -548,6 +551,7 @@ export function createSeed(now = new Date()): DataSlice {
         outcome: "Fibrillazione assente. Confermata terapia. Controllo tra 6 mesi.",
         therapyChanges: "Nessuna variazione. Attenzione al peso e alla diuresi.",
         status: "done",
+        files: [],
       },
       {
         id: "a5",
@@ -560,6 +564,7 @@ export function createSeed(now = new Date()): DataSlice {
         reminders: [{ hoursBefore: 24, label: "Portare inalatore" }],
         questions: ["Uso del Ventolin in aumento questa settimana"],
         status: "upcoming",
+        files: [],
       },
     ],
     documents,

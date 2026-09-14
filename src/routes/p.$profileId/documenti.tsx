@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, X, FileText, Download, Image as ImageIcon } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -12,31 +12,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AttachmentsField } from "@/components/attachments-field";
+import { AttachmentList } from "@/components/file-viewer";
 import { useAppStore } from "@/lib/store";
 import type { ClinicalDocument, DocFile } from "@/lib/types";
 import { formatLongDate, toLocalDate } from "@/lib/format";
 
-const MAX_FILE_BYTES = 1_200_000; // ~1.2 MB per file, kept small for localStorage
-const MAX_FILES_PER_DOC = 12;
-
 export const Route = createFileRoute("/p/$profileId/documenti")({
   component: DocumentiPage,
 });
-
-function fileKind(file: File): DocFile["kind"] {
-  if (file.type === "application/pdf") return "pdf";
-  if (file.type.startsWith("image/")) return "image";
-  return "other";
-}
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 /** Combines the images of a document into a single downloadable multi-page PDF. */
 async function downloadImagesAsPdf(doc: ClinicalDocument) {
@@ -153,28 +137,13 @@ function DocumentiPage() {
             {d.notes && <p className="mt-2 text-sm">{d.notes}</p>}
 
             {d.files.length > 0 && (
-              <div className="mt-3 space-y-1.5">
-                {d.files.map((f, i) => (
-                  <a
-                    key={i}
-                    href={f.dataUrl}
-                    download={f.name}
-                    className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-foreground hover:bg-muted/70"
-                  >
-                    {f.kind === "image" ? (
-                      <ImageIcon className="size-4 shrink-0 text-muted-foreground" />
-                    ) : (
-                      <FileText className="size-4 shrink-0 text-muted-foreground" />
-                    )}
-                    <span className="min-w-0 flex-1 truncate">{f.name}</span>
-                    <Download className="size-4 shrink-0 text-muted-foreground" />
-                  </a>
-                ))}
+              <div className="mt-3 space-y-2">
+                <AttachmentList files={d.files} />
                 {d.files.some((f) => f.kind === "image") && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-1 w-full"
+                    className="w-full"
                     onClick={() => downloadImagesAsPdf(d)}
                   >
                     Scarica pagine come PDF
@@ -250,7 +219,7 @@ function NewCategoryForm({
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="es. Psichiatra, Intolleranza al glutine, Fisiatra"
+          placeholder="Inserisci una nuova categoria"
           autoFocus
           required
         />
@@ -283,31 +252,8 @@ function DocForm({
   const [doctor, setDoctor] = useState("");
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<DocFile[]>([]);
-  const [err, setErr] = useState("");
   const [addingCat, setAddingCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
-
-  async function handleFiles(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0) return;
-    setErr("");
-    const picked = Array.from(fileList).slice(0, MAX_FILES_PER_DOC - files.length);
-    const next: DocFile[] = [];
-    for (const file of picked) {
-      if (file.size > MAX_FILE_BYTES) {
-        setErr(
-          `"${file.name}" è troppo grande (max ~1,2 MB per pagina). Prova a fare una foto più leggera o comprimere il PDF.`,
-        );
-        continue;
-      }
-      try {
-        const dataUrl = await readAsDataUrl(file);
-        next.push({ name: file.name, dataUrl, kind: fileKind(file) });
-      } catch {
-        setErr(`Non è stato possibile leggere "${file.name}".`);
-      }
-    }
-    setFiles((prev) => [...prev, ...next]);
-  }
 
   return (
     <form
@@ -360,7 +306,7 @@ function DocForm({
               autoFocus
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
-              placeholder="es. Psichiatra"
+              placeholder="Inserisci una nuova categoria"
             />
             <Button
               type="button"
@@ -398,45 +344,12 @@ function DocForm({
         <Label>Note</Label>
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
       </div>
-      <div className="grid gap-1.5">
-        <Label>Foto o file del referto (anche più pagine)</Label>
-        <Input
-          type="file"
-          accept="image/*,.pdf"
-          multiple
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-        <p className="text-xs text-muted-foreground">
-          Puoi aggiungere più foto per un referto di più pagine: verranno unite in un unico PDF
-          scaricabile dall'app. Max {MAX_FILES_PER_DOC} file, circa 1,2 MB ciascuno.
-        </p>
-        {files.length > 0 && (
-          <ul className="mt-1 space-y-1.5">
-            {files.map((f, i) => (
-              <li
-                key={i}
-                className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm"
-              >
-                {f.kind === "image" ? (
-                  <ImageIcon className="size-4 shrink-0 text-muted-foreground" />
-                ) : (
-                  <FileText className="size-4 shrink-0 text-muted-foreground" />
-                )}
-                <span className="min-w-0 flex-1 truncate">{f.name}</span>
-                <button
-                  type="button"
-                  onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                  className="shrink-0 text-muted-foreground hover:text-foreground"
-                  aria-label="Rimuovi file"
-                >
-                  <X className="size-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {err && <p className="text-sm text-destructive">{err}</p>}
-      </div>
+      <AttachmentsField
+        label="Foto o file del referto (anche più pagine)"
+        hint="Puoi aggiungere più foto per un referto di più pagine: verranno unite in un unico PDF scaricabile dall'app."
+        files={files}
+        onChange={setFiles}
+      />
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Annulla

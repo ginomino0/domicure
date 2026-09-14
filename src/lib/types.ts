@@ -138,6 +138,7 @@ export type Appointment = {
   outcome?: string;
   therapyChanges?: string;
   status: "upcoming" | "done" | "cancelled";
+  files: DocFile[];
 };
 
 export type DocCategory = string;

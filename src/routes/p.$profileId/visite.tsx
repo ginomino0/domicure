@@ -20,8 +20,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAppStore } from "@/lib/store";
+import { AttachmentsField } from "@/components/attachments-field";
+import { AttachmentList } from "@/components/file-viewer";
 import { formatDay, formatTime, toLocalStamp, asDate } from "@/lib/format";
-import type { Appointment } from "@/lib/types";
+import type { Appointment, DocFile } from "@/lib/types";
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/p/$profileId/visite")({
@@ -87,6 +89,14 @@ function VisitePage() {
                 </ul>
               </div>
             )}
+            {a.files.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm font-medium">Allegati</p>
+                <div className="mt-1">
+                  <AttachmentList files={a.files} />
+                </div>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button size="sm" onClick={() => setDoneId(a.id)}>
                 Segna come effettuata
@@ -120,6 +130,11 @@ function VisitePage() {
               {a.outcome && <p className="mt-2 text-sm">{a.outcome}</p>}
               {a.therapyChanges && (
                 <p className="mt-1 text-sm text-muted-foreground">Terapia: {a.therapyChanges}</p>
+              )}
+              {a.files.length > 0 && (
+                <div className="mt-3">
+                  <AttachmentList files={a.files} />
+                </div>
               )}
             </article>
           ))}
@@ -175,6 +190,7 @@ function VisitForm({
   const [when, setWhen] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [questions, setQuestions] = useState("");
   const [prep, setPrep] = useState("Promemoria 24h prima");
+  const [files, setFiles] = useState<DocFile[]>([]);
 
   return (
     <form
@@ -196,6 +212,7 @@ function VisitForm({
             .map((q) => q.trim())
             .filter(Boolean),
           status: "upcoming",
+          files,
         });
       }}
     >
@@ -242,6 +259,12 @@ function VisitForm({
         <Label>Domande per il medico (una per riga)</Label>
         <Textarea value={questions} onChange={(e) => setQuestions(e.target.value)} rows={3} />
       </div>
+      <AttachmentsField
+        label="Ricetta, foglio dell'appuntamento o altri allegati"
+        hint="Puoi fotografare la ricetta o il foglio con i dettagli e la spesa dell'appuntamento: resteranno consultabili qui."
+        files={files}
+        onChange={setFiles}
+      />
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Annulla
